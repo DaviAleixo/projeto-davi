@@ -47,8 +47,6 @@ const BlurText: React.FC<BlurTextProps> = ({
 };
 
 export default function PortfolioHero() {
-  const [isDark] = useState(true);
-
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
