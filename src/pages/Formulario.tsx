@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { GlowEffect } from '../components/ui/glow-effect'
+import { ShineBorder } from '../components/ui/shine-border'
+import 'react-phone-number-input/style.css'
+import PhoneInput, { formatPhoneNumber } from 'react-phone-number-input'
 
 const FATURAMENTO_OPTIONS = [
   'Comecei agora, ainda não estou faturando.',
@@ -12,24 +15,41 @@ const FATURAMENTO_OPTIONS = [
   'Acima de R$ 100.000,00',
 ]
 
-const TIMING_OPTIONS = [
-  { value: 'Agora', label: 'Quero começar imediatamente', emoji: '🚀' },
-  { value: 'Semana que vem', label: 'Preciso de alguns dias', emoji: '📅' },
-]
-
 interface FormData {
   primeiro_nome: string
   email: string
   whatsapp: string
-  instagram_pessoal: string
-  instagram_negocio: string
-  faturamento_mensal: string
-  faturamento_mes_passado: string
+  possui_site: boolean | null
+  objetivo: string
   tem_verba_anuncio: boolean | null
-  quando_aumentar_vendas: string
+  faturamento_mensal: string
 }
 
-const TOTAL_STEPS = 9
+interface DiagnosticoResultado {
+  recomendacao: string
+  motivos: string[]
+}
+
+const TOTAL_STEPS = 7
+
+function RadioOption({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string
+  selected: boolean
+  onClick: () => void
+}) {
+  return (
+    <div className={`radio-option${selected ? ' selected' : ''}`} onClick={onClick}>
+      <div className="radio-circle">
+        {selected && <div className="radio-dot" />}
+      </div>
+      <span className="radio-label">{label}</span>
+    </div>
+  )
+}
 
 export default function Formulario() {
   const [step, setStep] = useState(1)
@@ -37,23 +57,25 @@ export default function Formulario() {
     primeiro_nome: '',
     email: '',
     whatsapp: '',
-    instagram_pessoal: '',
-    instagram_negocio: '',
-    faturamento_mensal: '',
-    faturamento_mes_passado: '',
+    possui_site: null,
+    objetivo: '',
     tem_verba_anuncio: null,
-    quando_aumentar_vendas: '',
+    faturamento_mensal: '',
   })
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  const progress = (step / TOTAL_STEPS) * 100
+  const [resultado, setResultado] = useState<DiagnosticoResultado | null>(null)
 
   const next = () => {
     setError('')
+    if (!canAdvance()) {
+      showValidationError()
+      return
+    }
     setStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }
+
   const back = () => {
     setError('')
     setStep((s) => Math.max(s - 1, 1))
@@ -63,37 +85,123 @@ export default function Formulario() {
     switch (step) {
       case 1: return data.primeiro_nome.trim().length >= 2
       case 2: return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
-      case 3: return data.whatsapp.replace(/\D/g, '').length >= 10
-      case 4: return data.instagram_pessoal.trim().length >= 2
-      case 5: return data.instagram_negocio.trim().length >= 2
-      case 6: return data.faturamento_mensal !== ''
-      case 7: return data.faturamento_mes_passado !== ''
-      case 8: return data.tem_verba_anuncio !== null
-      case 9: return data.quando_aumentar_vendas !== ''
+      case 3: {
+        const rawDigits = data.whatsapp.replace(/\D/g, '')
+        const localDigits = rawDigits.startsWith('55') && rawDigits.length > 11 ? rawDigits.slice(2) : rawDigits
+        return localDigits.length === 10 || localDigits.length === 11
+      }
+      case 4: return data.possui_site !== null
+      case 5: return data.objetivo !== ''
+      case 6: return data.tem_verba_anuncio !== null
+      case 7: return data.faturamento_mensal !== ''
       default: return false
     }
   }
 
+  const showValidationError = () => {
+    switch (step) {
+      case 1: setError('Por favor, preencha seu primeiro nome (mínimo 2 caracteres).'); break
+      case 2: setError('Por favor, digite um e-mail válido.'); break
+      case 3: setError('Por favor, insira um WhatsApp válido com DDD (10 ou 11 dígitos).'); break
+      case 4: setError('Por favor, selecione se possui ou não um site.'); break
+      case 5: setError('Por favor, selecione o seu objetivo principal.'); break
+      case 6: setError('Por favor, informe se investe ou quer investir em anúncios.'); break
+      case 7: setError('Por favor, selecione sua faixa de faturamento mensal.'); break
+    }
+  }
+
+  const calcularDiagnostico = (): DiagnosticoResultado => {
+    const { possui_site, objetivo, tem_verba_anuncio } = data
+
+    // Caso 1: Não tem site + CRM -> CRM & Landing Page para impulsionar vendas
+    if (possui_site === false && objetivo === 'automatizar') {
+      return {
+        recomendacao: 'Sistema CRM & Landing Page para Impulsionar Vendas',
+        motivos: [
+          'Sua empresa ainda não possui um site ou canal próprio de vendas na internet.',
+          'Uma Landing Page de alta conversão atrairá e converterá visitantes em contatos diretos.',
+          'O CRM organizará todos os atendimentos automaticamente para acelerar e fechar mais vendas.',
+        ],
+      }
+    }
+
+    // Caso 2: Já tem site + CRM
+    if (objetivo === 'automatizar') {
+      return {
+        recomendacao: 'Sistema CRM & Automação de Atendimento',
+        motivos: [
+          'Sua empresa necessita organizar o histórico de contatos e centralizar atendimentos.',
+          'Um CRM com automação reduz o tempo de resposta e impede a perda de novos leads.',
+          'Permite acompanhar cada etapa do funil de vendas e automatizar tarefas repetitivas.',
+        ],
+      }
+    }
+
+    // Caso 2: Landing Page
+    if (objetivo === 'vender_especifico' || tem_verba_anuncio) {
+      return {
+        recomendacao: 'Landing Page de Alta Conversão',
+        motivos: [
+          'Você tem como foco vender um serviço ou produto específico com alta conversão.',
+          'Uma landing page é focada em transformar visitantes em contatos diretos, multiplicando suas vendas.',
+          'Elimina distrações e otimiza os resultados do seu investimento publicitário.',
+        ],
+      }
+    }
+
+    // Caso 3 (Default): Site Institucional
+    return {
+      recomendacao: 'Site Institucional Profissional',
+      motivos: [
+        'Sua empresa ainda não possui um site profissional.',
+        'Você quer fortalecer sua credibilidade e autoridade perante o mercado.',
+        'Um site ajudará clientes a encontrarem sua empresa no Google e conhecerem seus serviços.',
+      ],
+    }
+  }
+
   const handleSubmit = async () => {
-    if (!canAdvance()) return
-    setLoading(true)
     setError('')
+    if (!canAdvance()) {
+      showValidationError()
+      return
+    }
+    setLoading(true)
+
+    const diag = calcularDiagnostico()
+    setResultado(diag)
+
     try {
-      const { error: sbError } = await supabase.from('form_leads').insert([
+      // Salva na tabela form_leads
+      const { error: sbError1 } = await supabase.from('form_leads').insert([
         {
           primeiro_nome: data.primeiro_nome.trim(),
           email: data.email.trim(),
           whatsapp: data.whatsapp.trim(),
-          instagram_pessoal: data.instagram_pessoal.trim(),
-          instagram_negocio: data.instagram_negocio.trim(),
           faturamento_mensal: data.faturamento_mensal,
-          faturamento_mes_passado: data.faturamento_mes_passado,
           tem_verba_anuncio: data.tem_verba_anuncio,
-          quando_aumentar_vendas: data.quando_aumentar_vendas,
+          quando_aumentar_vendas: data.objetivo,
           origem: 'formulario-davi',
         },
       ])
-      if (sbError) throw sbError
+
+      // Salva na tabela de diagnóstico leads_site
+      await supabase.from('leads_site').insert([
+        {
+          nome: data.primeiro_nome.trim(),
+          email: data.email.trim(),
+          whatsapp: data.whatsapp.trim(),
+          possui_site: data.possui_site,
+          investe_anuncios: data.tem_verba_anuncio,
+          objetivo: data.objetivo,
+          faturamento: data.faturamento_mensal,
+          recomendacao_solucao: diag.recomendacao,
+          motivos_diagnostico: diag.motivos,
+          origem: 'diagnostico_site',
+        },
+      ])
+
+      if (sbError1) console.warn('Aviso Supabase form_leads:', sbError1)
       setSubmitted(true)
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao enviar suas respostas. Tente novamente.')
@@ -103,363 +211,440 @@ export default function Formulario() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && canAdvance()) {
+    if (e.key === 'Enter') {
       if (step < TOTAL_STEPS) next()
       else handleSubmit()
     }
   }
 
-  return (
-    <div className="min-h-screen bg-[#000000] text-[#E2E8F0] font-sans flex flex-col items-center justify-between p-6 relative overflow-hidden selection:bg-[#2563EB]/30 selection:text-white">
-      {/* Premium Ambient Background Glows */}
-      <div className="absolute top-[-25%] left-[-20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-[#2563EB]/15 to-transparent blur-[140px] pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
-      <div className="absolute bottom-[-20%] right-[-15%] w-[65vw] h-[65vw] rounded-full bg-gradient-to-tr from-blue-600/10 to-transparent blur-[160px] pointer-events-none animate-pulse" style={{ animationDuration: '12s' }} />
-      <div className="absolute top-[30%] left-[40%] w-[300px] h-[300px] rounded-full bg-blue-600/5 blur-[100px] pointer-events-none" />
+  const getWhatsAppUrl = () => {
+    const rec = resultado?.recomendacao || 'Diagnóstico Digital'
+    const msg = encodeURIComponent(
+      `Olá! Fiz meu diagnóstico no site e minha recomendação foi: "${rec}". Gostaria de agendar uma conversa sobre o meu projeto.`
+    )
+    return `https://wa.me/5511999999999?text=${msg}`
+  }
 
-      {/* Header */}
-      <header className="w-full max-w-xl flex items-center justify-between z-10 pt-4 pb-2">
-        <a href="/" className="flex items-center gap-3 group">
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2563EB] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-gradient-to-r from-[#2563EB] to-blue-400"></span>
-          </span>
-          <span className="font-bold text-lg tracking-widest uppercase bg-gradient-to-r from-white to-[#D7E2EA]/70 bg-clip-text text-transparent group-hover:to-white transition-all duration-300">
-            DAVI ALEIXO
-          </span>
-        </a>
-        <a href="/" className="text-xs font-semibold text-[#D7E2EA]/50 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1.5 group">
-          Voltar ao site
-          <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-        </a>
-      </header>
+  // ─── Tela de sucesso / Diagnóstico ──────────────────────────────
+  if (submitted && resultado) {
+    return (
+      <div className="form-page-container relative overflow-hidden">
+        {/* ── Spline 3D Background (Apenas na parte final) ── */}
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <iframe
+            src="https://my.spline.design/motiontrails-mQJiWP02BoJRJj7QScWZ8Yil/"
+            frameBorder="0"
+            title="Motion trails background"
+            className="h-[calc(100%+240px)] w-full -mt-16 -mb-[220px] scale-[1.1] sm:scale-[1.05] origin-top opacity-70"
+            style={{ filter: "hue-rotate(60deg) saturate(1.2)" }}
+          />
+        </div>
 
-      {/* Main Form Container */}
-      <main className="w-full max-w-xl my-auto z-10 flex flex-col gap-6 py-6">
-        <AnimatePresence mode="wait">
-          {submitted ? (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, scale: 0.97, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full bg-[#0D0D0E]/60 backdrop-blur-2xl border border-white/[0.06] rounded-[32px] p-8 md:p-12 flex flex-col items-center text-center shadow-[0_24px_80px_-15px_rgba(37,99,235,0.12)] relative overflow-hidden"
-            >
-              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#2563EB] to-blue-400" />
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#2563EB] to-blue-500 flex items-center justify-center text-3xl text-white mb-8 shadow-[0_0_40px_rgba(37,99,235,0.4)] relative">
-                <span className="absolute inset-0 rounded-full bg-inherit blur-md opacity-40 animate-pulse" />
-                <span className="relative">✓</span>
+        <div className="form-wrapper relative z-10">
+          <ShineBorder color={["#3B82F6", "#FFFFFF", "#2563EB", "#FFFFFF"]} borderRadius={16} borderWidth={2} duration={5}>
+            <div className="success-card w-full">
+              <div className="success-icon" style={{ color: '#3B82F6', borderColor: 'rgba(59,130,246,0.4)', background: 'rgba(59,130,246,0.12)' }}>✓</div>
+              <div className="success-badge" style={{ color: '#3B82F6', borderColor: 'rgba(59,130,246,0.4)', background: 'rgba(59,130,246,0.12)' }}>
+                <span>●</span> Diagnóstico Calculado
               </div>
-              <span className="px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest bg-gradient-to-r from-[#2563EB]/20 to-blue-500/20 text-[#60A5FA] uppercase mb-5 border border-[#2563EB]/20">
-                Formulário Recebido
-              </span>
-              <h1 className="text-2xl md:text-3xl font-extrabold uppercase tracking-wider text-white mb-4">
-                Excelente, {data.primeiro_nome}!
-              </h1>
-              <p className="text-[#D7E2EA]/75 text-sm md:text-base leading-relaxed max-w-sm">
-                Suas respostas foram salvas. Vou analisar seus dados pessoalmente e entrarei em contato via WhatsApp nas próximas horas.
+              
+              <div style={{ textAlign: 'center', width: '100%' }}>
+                <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#3B82F6', fontWeight: 700 }}>
+                  Recomendação:
+                </span>
+                <h1 className="success-title" style={{ marginTop: '6px', color: '#FFFFFF', fontSize: '26px', fontWeight: 800, textShadow: '0 0 25px rgba(59, 130, 246, 0.5)' }}>
+                  {resultado.recomendacao}
+                </h1>
+              </div>
+
+              <div style={{ 
+                background: '#0F1929', 
+                border: '1px solid rgba(59, 130, 246, 0.2)', 
+                borderRadius: '12px', 
+                padding: '20px', 
+                textAlign: 'left', 
+                width: '100%',
+                boxShadow: 'inset 0 0 20px rgba(59, 130, 246, 0.05)'
+              }}>
+                <h4 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#3B82F6', fontWeight: 700, marginBottom: '12px' }}>
+                  Por que recomendamos isso?
+                </h4>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', listStyle: 'none' }}>
+                  {resultado.motivos.map((m, idx) => (
+                    <li key={idx} style={{ fontSize: '14px', color: '#F8FAFC', lineHeight: '1.5', display: 'flex', alignItems: 'flex-start', gap: '8px', fontWeight: 500 }}>
+                      <span style={{ color: '#3B82F6', fontWeight: 'bold' }}>•</span>
+                      <span>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="success-text" style={{ color: '#94A3B8', fontSize: '14px' }}>
+                Obrigado, <strong style={{ color: '#FFFFFF' }}>{data.primeiro_nome}</strong>! Clique abaixo para conversarmos no WhatsApp sobre a melhor estratégia para o seu negócio.
               </p>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="form-step"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full flex flex-col gap-5"
-            >
-              {/* Progress Bar */}
-              <div className="flex flex-col gap-2.5 px-1">
-                <div className="w-full h-1 bg-white/[0.04] rounded-full overflow-hidden relative">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#2563EB] via-blue-500 to-blue-400 transition-all duration-500 ease-out shadow-[0_0_8px_rgba(37,99,235,0.5)]"
-                    style={{ width: `${progress}%` }}
+
+              <div className="relative w-full mt-2">
+                <GlowEffect
+                  colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                  mode="colorShift"
+                  blur="medium"
+                  duration={3}
+                  scale={1.04}
+                  style={{ zIndex: -1 }}
+                />
+                <a
+                  href={getWhatsAppUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="landing-cta-btn relative w-full text-center"
+                  style={{ textDecoration: 'none' }}
+                >
+                  Falar no WhatsApp
+                </a>
+              </div>
+            </div>
+          </ShineBorder>
+          <p className="form-footer">Web Designer & Desenvolvedor</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Steps do Formulário ────────────────────────────────────────
+  const renderStep = () => {
+    switch (step) {
+
+      // Step 1 — Nome
+      case 1:
+        return (
+          <div className="step-card" key="s1" onKeyDown={handleKeyDown}>
+            <div className="step-header">
+              <h2 className="step-question">Qual é o seu primeiro nome?</h2>
+            </div>
+            <div className="input-group">
+              <input
+                autoFocus
+                className="form-input"
+                type="text"
+                placeholder="Seu nome..."
+                value={data.primeiro_nome}
+                onChange={(e) => {
+                  setError('')
+                  setData({ ...data, primeiro_nome: e.target.value })
+                }}
+              />
+            </div>
+            <div className="relative w-full">
+              <GlowEffect
+                colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                mode="colorShift"
+                blur="medium"
+                duration={3}
+                scale={1.04}
+                style={{ zIndex: -1 }}
+              />
+              <button className="landing-cta-btn relative w-full" onClick={next}>
+                Continuar
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )
+
+      // Step 2 — Email
+      case 2:
+        return (
+          <div className="step-card" key="s2" onKeyDown={handleKeyDown}>
+            <div className="step-header">
+              <h2 className="step-question">Qual é o seu melhor e-mail?</h2>
+              <p className="step-subtitle">Você receberá atualizações e cópia do diagnóstico por aqui.</p>
+            </div>
+            <div className="input-group">
+              <input
+                autoFocus
+                className="form-input"
+                type="email"
+                placeholder="seu@email.com"
+                value={data.email}
+                onChange={(e) => {
+                  setError('')
+                  setData({ ...data, email: e.target.value })
+                }}
+              />
+            </div>
+            <div className="relative w-full">
+              <GlowEffect
+                colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                mode="colorShift"
+                blur="medium"
+                duration={3}
+                scale={1.04}
+                style={{ zIndex: -1 }}
+              />
+              <button className="landing-cta-btn relative w-full" onClick={next}>
+                Continuar
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+            <button className="btn-back" onClick={back}>← Voltar</button>
+          </div>
+        )
+
+      // Step 3 — WhatsApp
+      case 3:
+        return (
+          <div className="step-card" key="s3" onKeyDown={handleKeyDown}>
+            <div className="step-header">
+              <h2 className="step-question">Qual é o seu WhatsApp?</h2>
+              <p className="step-subtitle">Com DDD. Ex: (11) 99999-0000</p>
+            </div>
+            <div className="input-group">
+              <PhoneInput
+                defaultCountry="BR"
+                international={false}
+                numberInputProps={{ maxLength: 15 }}
+                placeholder="(11) 99999-9999"
+                value={data.whatsapp}
+                onChange={(val) => {
+                  setError('')
+                  if (val) {
+                    const raw = val.replace(/\D/g, '')
+                    if (raw.length > 13) return
+                  }
+                  setData({ ...data, whatsapp: val || '' })
+                }}
+              />
+            </div>
+            <div className="relative w-full">
+              <GlowEffect
+                colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                mode="colorShift"
+                blur="medium"
+                duration={3}
+                scale={1.04}
+                style={{ zIndex: -1 }}
+              />
+              <button className="landing-cta-btn relative w-full" onClick={next}>
+                Continuar
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+            <button className="btn-back" onClick={back}>← Voltar</button>
+          </div>
+        )
+
+      // Step 4 — Possui Site
+      case 4:
+        return (
+          <div className="step-card" key="s4">
+            <div className="step-header">
+              <h2 className="step-question">Sua empresa já possui um site profissional?</h2>
+            </div>
+            <div className="bool-buttons">
+              <button
+                className={`bool-btn${data.possui_site === false ? ' selected' : ''}`}
+                onClick={() => {
+                  setError('')
+                  setData({ ...data, possui_site: false })
+                }}
+              >
+                Não tenho site
+              </button>
+              <button
+                className={`bool-btn${data.possui_site === true ? ' selected' : ''}`}
+                onClick={() => {
+                  setError('')
+                  setData({ ...data, possui_site: true })
+                }}
+              >
+                Já tenho site
+              </button>
+            </div>
+            <div className="relative w-full">
+              <GlowEffect
+                colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                mode="colorShift"
+                blur="medium"
+                duration={3}
+                scale={1.04}
+                style={{ zIndex: -1 }}
+              />
+              <button className="landing-cta-btn relative w-full" onClick={next}>
+                Continuar
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+            <button className="btn-back" onClick={back}>← Voltar</button>
+          </div>
+        )
+
+      // Step 5 — Objetivo Principal
+      case 5:
+        return (
+          <div className="step-card" key="s5">
+            <div className="step-header">
+              <h2 className="step-question">Qual é o seu principal objetivo digital?</h2>
+            </div>
+            <div className="timing-buttons">
+              {[
+                { value: 'credibilidade', label: 'Fortalecer credibilidade e ser encontrado no Google' },
+                { value: 'vender_especifico', label: 'Vender um produto ou serviço específico com tráfego' },
+                { value: 'automatizar', label: 'Automatizar atendimento e processos de vendas (CRM)' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`timing-btn${data.objetivo === opt.value ? ' selected' : ''}`}
+                  onClick={() => {
+                    setError('')
+                    setData({ ...data, objetivo: opt.value })
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="relative w-full">
+              <GlowEffect
+                colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                mode="colorShift"
+                blur="medium"
+                duration={3}
+                scale={1.04}
+                style={{ zIndex: -1 }}
+              />
+              <button className="landing-cta-btn relative w-full" onClick={next}>
+                Continuar
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+            <button className="btn-back" onClick={back}>← Voltar</button>
+          </div>
+        )
+
+      // Step 6 — Verba de anúncio
+      case 6:
+        return (
+          <div className="step-card" key="s6">
+            <div className="step-header">
+              <h2 className="step-question">Você já investe ou quer investir em anúncios pagos (Meta/Google)?</h2>
+            </div>
+            <div className="bool-buttons">
+              <button
+                className={`bool-btn${data.tem_verba_anuncio === true ? ' selected' : ''}`}
+                onClick={() => {
+                  setError('')
+                  setData({ ...data, tem_verba_anuncio: true })
+                }}
+              >
+                Sim, invisto/pretendo
+              </button>
+              <button
+                className={`bool-btn${data.tem_verba_anuncio === false ? ' selected' : ''}`}
+                onClick={() => {
+                  setError('')
+                  setData({ ...data, tem_verba_anuncio: false })
+                }}
+              >
+                Não invisto
+              </button>
+            </div>
+            <div className="relative w-full">
+              <GlowEffect
+                colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                mode="colorShift"
+                blur="medium"
+                duration={3}
+                scale={1.04}
+                style={{ zIndex: -1 }}
+              />
+              <button className="landing-cta-btn relative w-full" onClick={next}>
+                Continuar
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+            <button className="btn-back" onClick={back}>← Voltar</button>
+          </div>
+        )
+
+      // Step 7 — Faturamento mensal
+      case 7:
+        return (
+          <div className="step-card" key="s7">
+            <div className="step-header">
+              <h2 className="step-question">Qual é a faixa de faturamento mensal do seu negócio?</h2>
+            </div>
+            <div className="input-group">
+              <div className="radio-list">
+                {FATURAMENTO_OPTIONS.map((opt) => (
+                  <RadioOption
+                    key={opt}
+                    label={opt}
+                    selected={data.faturamento_mensal === opt}
+                    onClick={() => {
+                      setError('')
+                      setData({ ...data, faturamento_mensal: opt })
+                    }}
                   />
-                </div>
-                <div className="flex justify-between items-center text-[10px] font-bold text-[#D7E2EA]/40 uppercase tracking-widest">
-                  <span>Passo {step} de {TOTAL_STEPS}</span>
-                  <span className="text-[#2563EB]/80">{Math.round(progress)}% Concluído</span>
-                </div>
+                ))}
               </div>
+            </div>
+            {error && <p className="error-msg">{error}</p>}
+            <div className="relative w-full">
+              <GlowEffect
+                colors={['#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF', '#3B82F6']}
+                mode="colorShift"
+                blur="medium"
+                duration={3}
+                scale={1.04}
+                style={{ zIndex: -1 }}
+              />
+              <button
+                className="landing-cta-btn relative w-full"
+                disabled={loading}
+                onClick={handleSubmit}
+              >
+                {loading ? <><div className="spinner" /> Calculando Diagnóstico...</> : <>Gerar Diagnóstico Gratuito</>}
+              </button>
+            </div>
+            <button className="btn-back" onClick={back}>← Voltar</button>
+          </div>
+        )
 
-              {/* Cards / Questions */}
-              <div className="bg-[#0D0D0E]/60 backdrop-blur-2xl border border-white/[0.06] rounded-[32px] p-7 md:p-10 shadow-[0_32px_96px_-24px_rgba(0,0,0,0.8)] relative overflow-hidden">
-                <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                
-                {step === 1 && (
-                  <div className="flex flex-col gap-6" onKeyDown={handleKeyDown}>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Identificação</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Como posso te chamar?</h2>
-                      <p className="text-xs text-[#D7E2EA]/50 mt-1.5">Insira o seu primeiro nome para começarmos.</p>
-                    </div>
-                    <div className="relative">
-                      <input
-                        autoFocus
-                        type="text"
-                        className="w-full bg-white/[0.03] border border-white/[0.08] focus:border-[#2563EB]/80 rounded-2xl px-6 py-4.5 text-[#E2E8F0] placeholder-[#D7E2EA]/20 focus:outline-none focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 font-medium"
-                        placeholder="Digite seu nome..."
-                        value={data.primeiro_nome}
-                        onChange={(e) => setData({ ...data, primeiro_nome: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
+      default:
+        return null
+    }
+  }
 
-                {step === 2 && (
-                  <div className="flex flex-col gap-6" onKeyDown={handleKeyDown}>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Contato Principal</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Qual o seu melhor e-mail?</h2>
-                      <p className="text-xs text-[#D7E2EA]/50 mt-1.5">Insira um e-mail válido para contato e acompanhamento.</p>
-                    </div>
-                    <div className="relative">
-                      <input
-                        autoFocus
-                        type="email"
-                        className="w-full bg-white/[0.03] border border-white/[0.08] focus:border-[#2563EB]/80 rounded-2xl px-6 py-4.5 text-[#E2E8F0] placeholder-[#D7E2EA]/20 focus:outline-none focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 font-medium"
-                        placeholder="seu.email@exemplo.com"
-                        value={data.email}
-                        onChange={(e) => setData({ ...data, email: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
+  return (
+    <div className="form-page-container">
+      <div className="form-wrapper">
+        {/* Render Step */}
+        {renderStep()}
 
-                {step === 3 && (
-                  <div className="flex flex-col gap-6" onKeyDown={handleKeyDown}>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Conexão Imediata</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Qual o seu WhatsApp?</h2>
-                      <p className="text-xs text-[#D7E2EA]/50 mt-1.5">Por aqui agendaremos o seu diagnóstico gratuito. Com DDD.</p>
-                    </div>
-                    <div className="relative">
-                      <input
-                        autoFocus
-                        type="tel"
-                        className="w-full bg-white/[0.03] border border-white/[0.08] focus:border-[#2563EB]/80 rounded-2xl px-6 py-4.5 text-[#E2E8F0] placeholder-[#D7E2EA]/20 focus:outline-none focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 font-medium"
-                        placeholder="(00) 99999-0000"
-                        value={data.whatsapp}
-                        onChange={(e) => setData({ ...data, whatsapp: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
+        {/* Exibição de Erro */}
+        {error && (
+          <div className="error-msg-container flex justify-center text-center mt-2">
+            <p className="error-msg">{error}</p>
+          </div>
+        )}
 
-                {step === 4 && (
-                  <div className="flex flex-col gap-6" onKeyDown={handleKeyDown}>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Mídia Social</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Seu Instagram pessoal</h2>
-                      <p className="text-xs text-[#D7E2EA]/50 mt-1.5">Ex: @seu_perfil (mínimo 2 caracteres).</p>
-                    </div>
-                    <div className="relative">
-                      <input
-                        autoFocus
-                        type="text"
-                        className="w-full bg-white/[0.03] border border-white/[0.08] focus:border-[#2563EB]/80 rounded-2xl px-6 py-4.5 text-[#E2E8F0] placeholder-[#D7E2EA]/20 focus:outline-none focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 font-medium"
-                        placeholder="@seuusuario"
-                        value={data.instagram_pessoal}
-                        onChange={(e) => setData({ ...data, instagram_pessoal: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {step === 5 && (
-                  <div className="flex flex-col gap-6" onKeyDown={handleKeyDown}>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Negócio</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Instagram da empresa</h2>
-                      <p className="text-xs text-[#D7E2EA]/50 mt-1.5">Perfil de onde faremos a análise estrutural de anúncios.</p>
-                    </div>
-                    <div className="relative">
-                      <input
-                        autoFocus
-                        type="text"
-                        className="w-full bg-white/[0.03] border border-white/[0.08] focus:border-[#2563EB]/80 rounded-2xl px-6 py-4.5 text-[#E2E8F0] placeholder-[#D7E2EA]/20 focus:outline-none focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 font-medium"
-                        placeholder="@instagramdaempresa"
-                        value={data.instagram_negocio}
-                        onChange={(e) => setData({ ...data, instagram_negocio: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {step === 6 && (
-                  <div className="flex flex-col gap-6">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Faturamento</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Qual a faixa de faturamento mensal atual do seu negócio?</h2>
-                    </div>
-                    <div className="flex flex-col gap-2.5 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
-                      {FATURAMENTO_OPTIONS.map((opt) => {
-                        const isSelected = data.faturamento_mensal === opt;
-                        return (
-                          <button
-                            key={opt}
-                            onClick={() => setData({ ...data, faturamento_mensal: opt })}
-                            className={`w-full text-left bg-white/[0.02] border rounded-2xl px-5 py-4 hover:bg-white/[0.06] transition-all duration-200 flex items-center justify-between group ${
-                              isSelected 
-                                ? 'border-[#2563EB] text-white bg-[#2563EB]/5 shadow-[0_0_15px_rgba(37,99,235,0.1)]' 
-                                : 'border-white/[0.06] text-[#D7E2EA]/75'
-                            }`}
-                          >
-                            <span className="text-sm font-medium">{opt}</span>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                              isSelected ? 'border-[#2563EB] bg-[#2563EB]' : 'border-white/20 group-hover:border-white/40'
-                            }`}>
-                              {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {step === 7 && (
-                  <div className="flex flex-col gap-6">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Retrospecto</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Quanto faturou no mês passado?</h2>
-                    </div>
-                    <div className="flex flex-col gap-2.5 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
-                      {FATURAMENTO_OPTIONS.map((opt) => {
-                        const isSelected = data.faturamento_mes_passado === opt;
-                        return (
-                          <button
-                            key={opt}
-                            onClick={() => setData({ ...data, faturamento_mes_passado: opt })}
-                            className={`w-full text-left bg-white/[0.02] border rounded-2xl px-5 py-4 hover:bg-white/[0.06] transition-all duration-200 flex items-center justify-between group ${
-                              isSelected 
-                                ? 'border-[#2563EB] text-white bg-[#2563EB]/5 shadow-[0_0_15px_rgba(37,99,235,0.1)]' 
-                                : 'border-white/[0.06] text-[#D7E2EA]/75'
-                            }`}
-                          >
-                            <span className="text-sm font-medium">{opt}</span>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                              isSelected ? 'border-[#2563EB] bg-[#2563EB]' : 'border-white/20 group-hover:border-white/40'
-                            }`}>
-                              {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {step === 8 && (
-                  <div className="flex flex-col gap-6">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Orçamento de Tráfego</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Orçamento para investir pelo menos R$30/dia em anúncios?</h2>
-                      <p className="text-xs text-[#D7E2EA]/50 mt-1.5">Equivale a cerca de R$ 900 mensais direcionados às plataformas de anúncios.</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        onClick={() => setData({ ...data, tem_verba_anuncio: true })}
-                        className={`border rounded-2xl py-6 flex flex-col items-center gap-3 transition-all duration-300 relative group overflow-hidden ${
-                          data.tem_verba_anuncio === true 
-                            ? 'border-[#2563EB] text-white bg-[#2563EB]/10 shadow-[0_0_20px_rgba(37,99,235,0.15)]' 
-                            : 'border-white/[0.06] text-[#D7E2EA]/75 bg-white/[0.02] hover:bg-white/[0.05]'
-                        }`}
-                      >
-                        <span className="text-3xl transition-transform duration-300 group-hover:scale-110">✅</span>
-                        <span className="font-semibold text-xs sm:text-sm uppercase tracking-wider">Sim, possuo</span>
-                      </button>
-                      <button
-                        onClick={() => setData({ ...data, tem_verba_anuncio: false })}
-                        className={`border rounded-2xl py-6 flex flex-col items-center gap-3 transition-all duration-300 relative group overflow-hidden ${
-                          data.tem_verba_anuncio === false 
-                            ? 'border-[#2563EB] text-white bg-[#2563EB]/10 shadow-[0_0_20px_rgba(37,99,235,0.15)]' 
-                            : 'border-white/[0.06] text-[#D7E2EA]/75 bg-white/[0.02] hover:bg-white/[0.05]'
-                        }`}
-                      >
-                        <span className="text-3xl transition-transform duration-300 group-hover:scale-110">❌</span>
-                        <span className="font-semibold text-xs sm:text-sm uppercase tracking-wider">Ainda não</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {step === 9 && (
-                  <div className="flex flex-col gap-6">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Timing do Projeto</span>
-                      <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wider text-white mt-1">Quando você gostaria de começar a aumentar as suas vendas?</h2>
-                    </div>
-                    <div className="flex flex-col gap-3.5">
-                      {TIMING_OPTIONS.map((opt) => {
-                        const isSelected = data.quando_aumentar_vendas === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => setData({ ...data, quando_aumentar_vendas: opt.value })}
-                            className={`w-full text-left border rounded-2xl px-6 py-5 transition-all duration-300 flex items-center gap-4 group relative overflow-hidden ${
-                              isSelected 
-                                ? 'border-[#2563EB] text-white bg-[#2563EB]/10 shadow-[0_0_20px_rgba(37,99,235,0.15)]' 
-                                : 'border-white/[0.06] text-[#D7E2EA]/85 bg-white/[0.02] hover:bg-white/[0.05]'
-                            }`}
-                          >
-                            <span className="text-3xl transition-transform duration-300 group-hover:scale-110">{opt.emoji}</span>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-sm sm:text-base">{opt.label}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {error && <p className="text-red-400 text-xs font-semibold mt-5 flex items-center gap-1.5">⚠️ {error}</p>}
-
-                {/* Step Actions */}
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/[0.06]">
-                  {step > 1 ? (
-                    <button
-                      onClick={back}
-                      className="px-6 py-3 border border-white/[0.08] hover:border-white/20 rounded-full hover:bg-white/[0.03] text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 text-[#D7E2EA]/60 hover:text-white"
-                    >
-                      ← Voltar
-                    </button>
-                  ) : (
-                    <div />
-                  )}
-
-                  {step < TOTAL_STEPS ? (
-                    <button
-                      onClick={next}
-                      disabled={!canAdvance()}
-                      className="px-8 py-3.5 bg-gradient-to-r from-[#2563EB] to-blue-600 disabled:from-white/5 disabled:to-white/5 disabled:text-[#D7E2EA]/20 disabled:cursor-not-allowed hover:brightness-110 text-white rounded-full font-bold text-xs uppercase tracking-widest shadow-[0_6px_24px_rgba(37,99,235,0.3)] disabled:shadow-none hover:scale-[1.02] active:scale-95 transition-all duration-300"
-                    >
-                      Continuar →
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleSubmit}
-                      disabled={!canAdvance() || loading}
-                      className="px-8 py-3.5 bg-gradient-to-r from-[#2563EB] via-blue-600 to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 text-white rounded-full font-bold text-xs uppercase tracking-widest shadow-[0_6px_30px_rgba(37,99,235,0.4)] hover:scale-[1.02] active:scale-95 transition-all duration-300"
-                    >
-                      {loading ? 'Processando...' : 'Finalizar Diagnóstico 🚀'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-
-      {/* Footer */}
-      <footer className="w-full text-center z-10 py-4 border-t border-white/[0.04]">
-        <p className="text-[10px] font-bold text-[#D7E2EA]/30 tracking-widest uppercase">
-          Davi Aleixo · Marketing de Performance · Todos os direitos reservados 🔒
-        </p>
-      </footer>
+        {/* Footer */}
+        <div className="discreet-footer">
+          <span>Suas informações são seguras</span>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

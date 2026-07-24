@@ -12,6 +12,7 @@ export default {
       },
       fontFamily: {
         kanit: ['Kanit', 'sans-serif'],
+        audiowide: ['Audiowide', 'cursive', 'sans-serif'],
       },
     },
   },

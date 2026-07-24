@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button"
 
 export default function FormularioDavi() {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-[#0B192C] via-[#1E3E62] to-[#000000]">
+    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-[#0B192C] via-[#1E3E62] to-[#000000] font-audiowide">
+
       {/* ── L1: Spline Background (Marca d'água ocultada no mobile e desktop) ── */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <iframe
@@ -28,19 +29,16 @@ export default function FormularioDavi() {
       {/* ── L3: Conteúdo / Textos ── */}
       <main className="relative z-20 min-h-screen w-full flex flex-col lg:flex-row items-center">
         
-        {/* Foto no Mobile (lg:hidden - versão anterior sem pulsação) */}
+        {/* Foto no Mobile (lg:hidden - versão original com charme, mas sem drop-shadow p/ evitar glitch quadrado) */}
         <div className="lg:hidden relative flex-none h-[40vh] min-h-[280px] w-full flex items-center justify-center pt-8 overflow-hidden bg-gradient-to-b from-[#0B1B30] via-[#0E2442]/50 to-transparent">
-          {/* Luz azul cobrindo 100% do topo */}
+          {/* Luz azul original cobrindo o topo */}
           <div className="absolute -top-10 inset-x-0 h-40 bg-gradient-to-b from-[#0B1B30] via-[#0E2442] to-transparent pointer-events-none" />
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-blue-500/30 blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-blue-500/40 blur-3xl pointer-events-none" />
           
           <img
             src="/davi.png"
             alt="Davi"
             className="relative z-10 max-h-[90%] max-w-[85%] w-auto h-auto object-contain mx-auto translate-y-6 scale-[1.5] [mask-image:linear-gradient(to_bottom,black_85%,transparent_100%)]"
-            style={{
-              filter: "drop-shadow(0 0 40px rgba(59, 130, 246, 0.5))",
-            }}
           />
         </div>
 
@@ -49,7 +47,7 @@ export default function FormularioDavi() {
           
           {/* Subtítulo */}
           <div className="mb-3 inline-flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.9)]" />
+            <span className="hidden lg:block h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.9)]" />
             <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-blue-400">
               DESENVOLVEDOR & WEBDESIGNER
             </span>
@@ -73,13 +71,16 @@ export default function FormularioDavi() {
           </p>
 
           {/* Botão Único */}
-          <div className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto rounded-xl bg-white px-8 py-3.5 text-xs sm:text-sm font-bold uppercase tracking-wider text-[#0B192C] shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all duration-300 hover:bg-blue-50 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:scale-[1.02] active:scale-[0.98]"
-            >
-              DIAGNÓSTICO GRATUITO
-            </Button>
+          <div className="relative w-full sm:w-auto">
+            <div className="absolute inset-0 bg-blue-500/40 blur-xl rounded-xl" />
+            <a href="/formulario" className="relative block w-full sm:w-auto">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto rounded-xl bg-white px-8 py-3.5 text-xs sm:text-sm font-bold uppercase tracking-wider text-[#0B192C] shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all duration-300 hover:bg-blue-50 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:scale-[1.02] active:scale-[0.98]"
+              >
+                DIAGNÓSTICO GRATUITO
+              </Button>
+            </a>
           </div>
 
         </div>
