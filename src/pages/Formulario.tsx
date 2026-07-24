@@ -222,7 +222,7 @@ export default function Formulario() {
     const msg = encodeURIComponent(
       `Olá! Fiz meu diagnóstico no site e minha recomendação foi: "${rec}". Gostaria de agendar uma conversa sobre o meu projeto.`
     )
-    return `https://wa.me/5531982607426?text=${msg}`
+    return `https://wa.me/5531998275828?text=${msg}`
   }
 
   // ─── Tela de sucesso / Diagnóstico ──────────────────────────────

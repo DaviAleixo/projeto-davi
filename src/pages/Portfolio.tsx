@@ -808,7 +808,7 @@ const PricingSection: React.FC = () => {
                   text="Solicitar Orçamento" 
                   onClick={() => {
                     const text = encodeURIComponent(tier.whatsappMsg);
-                    window.open(`https://wa.me/5511999999999?text=${text}`, '_blank');
+                    window.open(`https://wa.me/5531998275828?text=${text}`, '_blank');
                   }} 
                 />
               </div>
@@ -841,7 +841,7 @@ const CTASection: React.FC = () => {
           <ContactButton 
             text="Fale Comigo" 
             onClick={() => {
-              window.open("https://wa.me/5511999999999?text=Ol%C3%A1%20Davi!%20Gostaria%20de%20solicitar%20um%20projeto%20com%20voc%C3%AA.", "_blank");
+              window.open("https://wa.me/5531998275828?text=Olá%20Davi!%20Gostaria%20de%20solicitar%20um%20projeto%20com%20você.", "_blank");
             }} 
           />
         </FadeIn>

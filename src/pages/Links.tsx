@@ -24,7 +24,7 @@ export default function Links() {
       title: 'Consultoria via WhatsApp',
       subtitle: 'Fale diretamente comigo para acelerar suas vendas',
       icon: <Send className="w-6 h-6 text-white" />,
-      url: 'https://wa.me/5500000000000', // User can customize this link
+      url: 'https://wa.me/5531998275828',
       highlight: true,
     },
     {
