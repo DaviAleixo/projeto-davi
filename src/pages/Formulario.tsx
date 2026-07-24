@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { GlowEffect } from '../components/ui/glow-effect'
 import { ShineBorder } from '../components/ui/shine-border'
 import 'react-phone-number-input/style.css'
-import PhoneInput, { formatPhoneNumber } from 'react-phone-number-input'
+import PhoneInput from 'react-phone-number-input'
 
 const FATURAMENTO_OPTIONS = [
   'Comecei agora, ainda não estou faturando.',
