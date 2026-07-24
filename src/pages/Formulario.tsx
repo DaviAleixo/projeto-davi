@@ -186,7 +186,7 @@ export default function Formulario() {
       ])
 
       // Salva na tabela de diagnóstico leads_site
-      await supabase.from('leads_site').insert([
+      const { error: sbError2 } = await supabase.from('leads_site').insert([
         {
           nome: data.primeiro_nome.trim(),
           email: data.email.trim(),
@@ -201,7 +201,14 @@ export default function Formulario() {
         },
       ])
 
-      if (sbError1) console.warn('Aviso Supabase form_leads:', sbError1)
+      if (sbError1) {
+        console.error('Erro Supabase form_leads:', sbError1)
+        throw new Error(`Erro form_leads: ${sbError1.message}`)
+      }
+      if (sbError2) {
+        console.error('Erro Supabase leads_site:', sbError2)
+        throw new Error(`Erro leads_site: ${sbError2.message}`)
+      }
       setSubmitted(true)
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao enviar suas respostas. Tente novamente.')
