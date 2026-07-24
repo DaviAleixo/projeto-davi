@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "21st": {
+      "env": {
+        "API_KEY": "21st_sk_56131a480014fbe676e430451cf8b4db39d893a897fbbd4181b8ed01b3e7953f"
+      }
+    }
+  }
+}
