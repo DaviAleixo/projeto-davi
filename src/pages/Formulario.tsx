@@ -222,7 +222,7 @@ export default function Formulario() {
     const msg = encodeURIComponent(
       `Olá! Fiz meu diagnóstico no site e minha recomendação foi: "${rec}". Gostaria de agendar uma conversa sobre o meu projeto.`
     )
-    return `https://wa.me/5511999999999?text=${msg}`
+    return `https://wa.me/5531982607426?text=${msg}`
   }
 
   // ─── Tela de sucesso / Diagnóstico ──────────────────────────────
@@ -359,7 +359,7 @@ export default function Formulario() {
           <div className="step-card" key="s2" onKeyDown={handleKeyDown}>
             <div className="step-header">
               <h2 className="step-question">Qual é o seu melhor e-mail?</h2>
-              <p className="step-subtitle">Você receberá atualizações e cópia do diagnóstico por aqui.</p>
+              <p className="step-subtitle">Usaremos apenas para contato comercial. Não enviamos spam.</p>
             </div>
             <div className="input-group">
               <input
