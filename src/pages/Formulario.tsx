@@ -172,19 +172,6 @@ export default function Formulario() {
     setResultado(diag)
 
     try {
-      // Salva na tabela form_leads
-      const { error: sbError1 } = await supabase.from('form_leads').insert([
-        {
-          primeiro_nome: data.primeiro_nome.trim(),
-          email: data.email.trim(),
-          whatsapp: data.whatsapp.trim(),
-          faturamento_mensal: data.faturamento_mensal,
-          tem_verba_anuncio: data.tem_verba_anuncio,
-          quando_aumentar_vendas: data.objetivo,
-          origem: 'formulario-davi',
-        },
-      ])
-
       // Salva na tabela de diagnóstico leads_site
       const { error: sbError2 } = await supabase.from('leads_site').insert([
         {
@@ -200,11 +187,6 @@ export default function Formulario() {
           origem: 'diagnostico_site',
         },
       ])
-
-      if (sbError1) {
-        console.error('Erro Supabase form_leads:', sbError1)
-        throw new Error(`Erro form_leads: ${sbError1.message}`)
-      }
       if (sbError2) {
         console.error('Erro Supabase leads_site:', sbError2)
         throw new Error(`Erro leads_site: ${sbError2.message}`)
