@@ -426,22 +426,28 @@ const MARQUEE_IMAGES = [
   { src: "/noctus.png", href: "https://noctus-company.vercel.app/" }
 ];
 
-const DoubleTapLink = memo(({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => {
-  const [lastTap, setLastTap] = useState(0);
+const ProjectCardLink = memo(({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => {
+  const pointerStart = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
 
-  const handlePointerDown = () => {
-    const now = Date.now();
-    if (now - lastTap < 400) {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    const deltaX = Math.abs(e.clientX - pointerStart.current.x);
+    const deltaY = Math.abs(e.clientY - pointerStart.current.y);
+    const deltaTime = Date.now() - pointerStart.current.time;
+
+    // If pointer didn't drag (moved less than 12px) and click duration was quick, it's a single tap/click!
+    if (deltaX < 12 && deltaY < 12 && deltaTime < 500) {
       window.open(href, '_blank');
-      setLastTap(0);
-    } else {
-      setLastTap(now);
     }
   };
 
   return (
     <div 
       onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
       className={className}
     >
       {children}
@@ -482,7 +488,7 @@ const MarqueeSection = memo(() => {
           <p className="text-[#D7E2EA]/70 text-sm sm:text-base md:text-lg font-light tracking-wide max-w-md mx-auto leading-relaxed">
             Arraste para o lado para explorar os projetos.
             <br className="hidden sm:block" />
-            Dê <strong className="text-white font-medium">dois cliques</strong> na imagem para acessar o site.
+            Clique na imagem para acessar o site.
           </p>
         </FadeIn>
       </div>
@@ -514,13 +520,13 @@ const MarqueeSection = memo(() => {
                 />
               );
               return item.href ? (
-                <DoubleTapLink 
+                <ProjectCardLink 
                   href={item.href}
                   key={`div-r1-${idx}`} 
                   className="cursor-pointer pointer-events-auto hover:opacity-85 hover:scale-[1.02] transition-all duration-300"
                 >
                   {content}
-                </DoubleTapLink>
+                </ProjectCardLink>
               ) : content;
             })}
           </motion.div>
@@ -552,13 +558,13 @@ const MarqueeSection = memo(() => {
                 />
               );
               return item.href ? (
-                <DoubleTapLink 
+                <ProjectCardLink 
                   href={item.href}
                   key={`div-r2-${idx}`} 
                   className="cursor-pointer pointer-events-auto hover:opacity-85 hover:scale-[1.02] transition-all duration-300"
                 >
                   {content}
-                </DoubleTapLink>
+                </ProjectCardLink>
               ) : content;
             })}
           </motion.div>

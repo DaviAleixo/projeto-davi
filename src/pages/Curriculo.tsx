@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, 
   Send,
   Briefcase, 
   GraduationCap
@@ -173,7 +171,6 @@ const EDUCATION = [
 ];
 
 export default function Curriculo() {
-  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'frontend' | 'backend' | 'database' | 'ai' | 'devops'>('all');
 
   useEffect(() => {
@@ -195,13 +192,14 @@ export default function Curriculo() {
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#05070D]/85 border-b border-white/[0.08] px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => navigate('/portfolio')}
-            className="flex items-center gap-2 text-xs sm:text-sm uppercase tracking-widest text-[#D7E2EA]/80 hover:text-white transition-colors group cursor-pointer font-medium"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span>Voltar ao Portfólio</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-sm sm:text-base font-bold uppercase tracking-wider text-white font-kanit">
+              Davi Aleixo
+            </span>
+            <span className="hidden sm:inline-block text-xs text-blue-400 font-mono">
+              / Especificações Técnicas
+            </span>
+          </div>
 
           <div className="flex items-center gap-3">
             <a
@@ -573,12 +571,6 @@ export default function Curriculo() {
             >
               Falar no WhatsApp
             </a>
-            <button
-              onClick={() => navigate('/portfolio')}
-              className="rounded-full border border-white/30 text-white font-medium uppercase tracking-wider text-xs sm:text-sm px-8 py-3.5 hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              Voltar ao Portfólio
-            </button>
           </div>
         </div>
 
