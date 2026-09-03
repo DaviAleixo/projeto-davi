@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -259,6 +259,10 @@ const EDUCATION = [
 export default function Curriculo() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'frontend' | 'backend' | 'database' | 'ai' | 'devops'>('all');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const filteredTechs = selectedCategory === 'all'
     ? DOMAIN_TECHS

@@ -1451,7 +1451,10 @@ const ExperienceSection = memo(() => {
 
             <div className="z-10 flex-shrink-0">
               <button
-                onClick={() => navigate('/curriculo')}
+                onClick={() => {
+                  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                  navigate('/curriculo');
+                }}
                 className="rounded-full text-white font-semibold uppercase tracking-wider text-xs sm:text-sm px-8 py-4 sm:px-10 sm:py-4.5 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-[0_0_30px_rgba(37,99,235,0.4)] flex items-center gap-3 border border-white/20 hover:border-white/50"
                 style={{
                   background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #38bdf8 100%)',
