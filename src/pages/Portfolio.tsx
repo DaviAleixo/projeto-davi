@@ -1530,7 +1530,9 @@ const ProcessSection = memo(() => {
 // 9. Testimonials Section
 const TestimonialsSection = memo(() => {
   const [activeIdx, setActiveIdx] = useState(0);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [maxScroll, setMaxScroll] = useState(0);
+  const [cardStep, setCardStep] = useState(480);
 
   const testimonials = [
     "Ficou maravilhoso, só elogios 😍. Ficou lindo, funcional e o sistema do blog está ajudando demais. Só tenho a agradecer pela atenção e trabalho!",
@@ -1539,37 +1541,43 @@ const TestimonialsSection = memo(() => {
     "Só tenho a agradecer ao Davi, que criou meu site. Que competência! O site ficou melhor do que eu imaginava e ele super captou a minha essência e as minhas necessidades. Estou extremamente extasiada com o recebimento da minha página."
   ];
 
-  const handleScroll = () => {
-    if (!carouselRef.current) return;
-    const container = carouselRef.current;
-    const scrollLeft = container.scrollLeft;
-    const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).offsetWidth + 24 : 350;
-    const newIdx = Math.round(scrollLeft / cardWidth);
-    if (newIdx >= 0 && newIdx < testimonials.length && newIdx !== activeIdx) {
-      setActiveIdx(newIdx);
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const firstCard = containerRef.current.querySelector('.testimonial-card') as HTMLElement;
+        const step = firstCard ? firstCard.offsetWidth + 24 : 450;
+        setCardStep(step);
+        const totalContentWidth = step * testimonials.length - 24;
+        setMaxScroll(Math.max(0, totalContentWidth - containerWidth));
+      }
+    };
+
+    updateDimensions();
+    const timer = setTimeout(updateDimensions, 200);
+    window.addEventListener('resize', updateDimensions);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateDimensions);
+    };
+  }, [testimonials.length]);
+
+  const onDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+    const swipeThreshold = 40;
+    if (info.offset.x < -swipeThreshold || info.velocity.x < -250) {
+      setActiveIdx((prev) => Math.min(testimonials.length - 1, prev + 1));
+    } else if (info.offset.x > swipeThreshold || info.velocity.x > 250) {
+      setActiveIdx((prev) => Math.max(0, prev - 1));
     }
   };
 
-  const scrollToIndex = (idx: number) => {
-    if (!carouselRef.current) return;
-    const container = carouselRef.current;
-    const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).offsetWidth + 24 : 350;
-    container.scrollTo({
-      left: idx * cardWidth,
-      behavior: 'smooth'
-    });
-    setActiveIdx(idx);
-  };
-
-  const scrollByDirection = (direction: 'left' | 'right') => {
-    const nextIdx = direction === 'left' 
-      ? Math.max(0, activeIdx - 1) 
-      : Math.min(testimonials.length - 1, activeIdx + 1);
-    scrollToIndex(nextIdx);
+  const getTranslateX = () => {
+    const targetX = activeIdx * cardStep;
+    return -Math.min(targetX, maxScroll);
   };
 
   return (
-    <section id="testimonials" className="bg-[#0C0C0C] text-[#D7E2EA] rounded-t-[40px] sm:rounded-t-[50px] md:rounded-t-[60px] px-5 sm:px-8 md:px-10 py-20 sm:py-24 md:py-32 relative z-50 -mt-10 sm:-mt-12 md:-mt-14 overflow-hidden">
+    <section id="testimonials" className="bg-[#0C0C0C] text-[#D7E2EA] rounded-t-[40px] sm:rounded-t-[50px] md:rounded-t-[60px] px-5 sm:px-8 md:px-10 py-20 sm:py-24 md:py-32 relative z-50 -mt-10 sm:-mt-12 md:-mt-14 overflow-hidden select-none">
       <div className="max-w-6xl mx-auto flex flex-col">
         {/* Header with Navigation Controls */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12 sm:mb-16">
@@ -1585,7 +1593,7 @@ const TestimonialsSection = memo(() => {
           {/* Carousel Arrows */}
           <div className="hidden sm:flex items-center justify-center gap-3">
             <button
-              onClick={() => scrollByDirection('left')}
+              onClick={() => setActiveIdx((prev) => Math.max(0, prev - 1))}
               disabled={activeIdx === 0}
               aria-label="Depoimento anterior"
               className={`w-12 h-12 rounded-full border border-white/10 flex items-center justify-center transition-all duration-300 ${
@@ -1599,7 +1607,7 @@ const TestimonialsSection = memo(() => {
               </svg>
             </button>
             <button
-              onClick={() => scrollByDirection('right')}
+              onClick={() => setActiveIdx((prev) => Math.min(testimonials.length - 1, prev + 1))}
               disabled={activeIdx === testimonials.length - 1}
               aria-label="Próximo depoimento"
               className={`w-12 h-12 rounded-full border border-white/10 flex items-center justify-center transition-all duration-300 ${
@@ -1615,17 +1623,21 @@ const TestimonialsSection = memo(() => {
           </div>
         </div>
 
-        {/* Unified Carousel Container (Desktop & Mobile) */}
-        <div className="w-full relative">
-          <div
-            ref={carouselRef}
-            onScroll={handleScroll}
-            className="w-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-6 pb-6 px-1 cursor-grab active:cursor-grabbing"
+        {/* Draggable Carousel (Zero Scrollbar) */}
+        <div ref={containerRef} className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing">
+          <motion.div
+            drag="x"
+            dragConstraints={{ left: -maxScroll, right: 0 }}
+            dragElastic={0.12}
+            onDragEnd={onDragEnd}
+            animate={{ x: getTranslateX() }}
+            transition={{ type: "spring", stiffness: 260, damping: 28 }}
+            className="flex gap-6 pb-4"
           >
             {testimonials.map((feedback, idx) => (
               <div
                 key={idx}
-                className="snap-center shrink-0 w-[88vw] sm:w-[460px] lg:w-[520px] bg-[#121212] border border-[#D7E2EA]/10 rounded-[28px] p-7 sm:p-9 flex flex-col justify-between hover:border-blue-500/40 hover:bg-[#151515] transition-all duration-300 shadow-2xl group"
+                className="testimonial-card shrink-0 w-[86vw] sm:w-[460px] lg:w-[520px] bg-[#121212] border border-[#D7E2EA]/10 rounded-[28px] p-7 sm:p-9 flex flex-col justify-between hover:border-blue-500/40 hover:bg-[#151515] transition-colors duration-300 shadow-2xl group"
               >
                 <div>
                   <svg className="w-8 h-8 text-blue-500/40 group-hover:text-blue-500/80 transition-colors mb-5" fill="currentColor" viewBox="0 0 32 32">
@@ -1637,14 +1649,14 @@ const TestimonialsSection = memo(() => {
                 </div>
               </div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Dots Indicator */}
           <div className="flex items-center justify-center gap-2 mt-6">
             {testimonials.map((_, i) => (
               <button
                 key={i}
-                onClick={() => scrollToIndex(i)}
+                onClick={() => setActiveIdx(i)}
                 aria-label={`Ir para o feedback ${i + 1}`}
                 className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                   activeIdx === i ? 'w-8 bg-blue-500 shadow-[0_0_10px_#3B82F6]' : 'w-2 bg-white/20 hover:bg-white/40'
