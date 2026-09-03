@@ -1,96 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Send,
-  CheckCircle2,
   Briefcase, 
-  GraduationCap,
-  Layers,
-  ShieldCheck,
-  Cpu,
-  Database,
-  Workflow,
-  BarChart3,
-  Cloud,
-  Code2
+  GraduationCap
 } from 'lucide-react';
-
-// --- VIBRANT TECH ICONS ---
-const ReactNextIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#00D8FF]">
-    <circle cx="12" cy="12" r="2" fill="#00D8FF"/>
-    <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="#00D8FF" strokeWidth="1.4" transform="rotate(0 12 12)"/>
-    <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="#00D8FF" strokeWidth="1.4" transform="rotate(60 12 12)"/>
-    <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="#00D8FF" strokeWidth="1.4" transform="rotate(120 12 12)"/>
-  </svg>
-);
-
-const JSTSIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6">
-    <rect width="24" height="24" rx="4" fill="#3178C6" />
-    <path d="M4 8h5v1.8H7.4V16H5.6V9.8H4V8zm6.5 3.5c.4-.3 1-.6 1.7-.6 1.2 0 2 .7 2 1.7 0 1-.6 1.6-1.6 1.9l-.6.2c-.5.2-.7.3-.7.6 0 .3.3.6.8.6.5 0 1-.2 1.3-.4l.4 1.2c-.5.3-1.1.5-1.8.5-1.3 0-2.1-.7-2.1-1.8 0-1 .7-1.6 1.6-2l.6-.2c.4-.1.6-.3.6-.6 0-.3-.3-.5-.7-.5-.4 0-.8.2-1.1.4l-.5-1z" fill="#FFF" />
-    <rect x="15" y="8" width="5" height="8" rx="1" fill="#F7DF1E" fillOpacity="0.3"/>
-    <text x="16" y="14.5" fill="#F7DF1E" fontSize="7" fontWeight="bold" fontFamily="sans-serif">JS</text>
-  </svg>
-);
-
-const HtmlTailwindIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#38BDF8]">
-    <path d="M12.001 5.25c-3.125 0-5.078 1.563-5.86 4.688 1.172-1.563 2.539-2.149 4.102-1.758 1.055.263 1.808 1.028 2.642 1.875 1.358 1.381 2.929 2.977 6.366 2.977 3.125 0 5.078-1.563 5.86-4.688-1.172 1.563-2.539 2.149-4.102 1.758-1.055-.263-1.808-1.028-2.642-1.875-1.358-1.381-2.929-2.977-6.366-2.977zM4.751 12.75c-3.125 0-5.078 1.563-5.86 4.688 1.172-1.563 2.539-2.149 4.102-1.758 1.055.263 1.808 1.028 2.642 1.875 1.358 1.381 2.929 2.977 6.366 2.977 3.125 0 5.078-1.563 5.86-4.688-1.172 1.563-2.539 2.149-4.102 1.758-1.055-.263-1.808-1.028-2.642-1.875-1.358-1.381-2.929-2.977-6.366-2.977z" fill="#38BDF8"/>
-  </svg>
-);
-
-const NodeIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#68A063]">
-    <path d="M12 2L3.5 7V17L12 22L20.5 17V7L12 2Z" stroke="#68A063" strokeWidth="1.5" strokeLinejoin="round" fill="#68A063" fillOpacity="0.15"/>
-    <path d="M12 6.5V17.5M8 9L12 11.5L16 9M8 15L12 12.5L16 15" stroke="#68A063" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const ApiWebhookIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#A855F7]">
-    <circle cx="6" cy="12" r="3" stroke="#A855F7" strokeWidth="1.8"/>
-    <circle cx="18" cy="6" r="3" stroke="#A855F7" strokeWidth="1.8"/>
-    <circle cx="18" cy="18" r="3" stroke="#A855F7" strokeWidth="1.8"/>
-    <path d="M8.7 10.7L15.3 7.3M8.7 13.3L15.3 16.7" stroke="#A855F7" strokeWidth="1.6" strokeLinecap="round"/>
-  </svg>
-);
-
-const SqlIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#336791]">
-    <rect width="24" height="24" rx="4" fill="#336791" fillOpacity="0.2"/>
-    <path d="M12 4C7.58 4 4 7.58 4 12C4 16.42 7.58 20 12 20C16.42 20 20 16.42 20 12C20 7.58 16.42 4 12 4ZM12 6C14.76 6 17 8.24 17 11C17 12.38 16.44 13.63 15.54 14.54L12 11V6ZM7.46 9.46C8.36 8.56 9.61 8 11 8V13L7.46 9.46ZM12 18C9.24 18 7 15.76 7 13C7 11.62 7.56 10.37 8.46 9.46L12 13V18ZM16.54 14.54C15.64 15.44 14.39 16 13 16V11L16.54 14.54Z" fill="#336791"/>
-  </svg>
-);
-
-const SupabaseIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#3ECF8E]">
-    <path d="M13.4 2.5L3.8 13.8C3.4 14.3 3.8 15 4.4 15H11.5L10.6 21.5C10.4 22.3 11.4 22.8 11.9 22.2L21.5 10.9C21.9 10.4 21.5 9.7 20.9 9.7H13.8L14.7 3.2C14.9 2.4 13.9 1.9 13.4 2.5Z" fill="#3ECF8E"/>
-  </svg>
-);
-
-const GitIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#F05032]">
-    <path d="M21.6 10.8L13.2 2.4C12.7 1.9 11.9 1.9 11.4 2.4L9.5 4.3L11.9 6.7C12.5 6.5 13.2 6.6 13.7 7.1C14.2 7.6 14.3 8.4 14.1 9L16.4 11.3C17 11.1 17.8 11.2 18.3 11.7C19 12.4 19 13.5 18.3 14.2C17.6 14.9 16.5 14.9 15.8 14.2C15.3 13.7 15.1 12.9 15.4 12.3L13.2 10.1V15.2C13.4 15.4 13.5 15.7 13.5 16C13.5 17.1 12.6 18 11.5 18C10.4 18 9.5 17.1 9.5 16C9.5 15.3 9.9 14.7 10.5 14.3V9.2L8.2 11.5L2.4 5.7C1.9 5.2 1.9 4.4 2.4 3.9L10.8 12.3C11.3 12.8 12.1 12.8 12.6 12.3L21.6 3.3C22.1 3.8 22.1 4.6 21.6 5.1L21.6 10.8Z" fill="#F05032"/>
-  </svg>
-);
-
-const AiLlmIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#EC4899]">
-    <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z" fill="#EC4899" fillOpacity="0.8"/>
-    <path d="M18 16L19.2 18.8L22 20L19.2 21.2L18 24L16.8 21.2L14 20L16.8 18.8L18 16Z" fill="#EC4899"/>
-  </svg>
-);
-
-const N8nIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#FF6D5A]">
-    <rect width="24" height="24" rx="4" fill="#FF6D5A" fillOpacity="0.2"/>
-    <path d="M6 12C6 9.79 7.79 8 10 8C11.3 8 12.44 8.62 13.16 9.58L10.84 11.42C10.63 11.16 10.33 11 10 11C9.45 11 9 11.45 9 12C9 12.55 9.45 13 10 13C10.33 13 10.63 12.84 10.84 12.58L13.16 14.42C12.44 15.38 11.3 16 10 16C7.79 16 6 14.21 6 12Z" fill="#FF6D5A"/>
-    <circle cx="17" cy="12" r="2.5" fill="#FF6D5A"/>
-  </svg>
-);
 
 interface TechDomainItem {
   name: string;
