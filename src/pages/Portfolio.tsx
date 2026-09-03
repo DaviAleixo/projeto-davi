@@ -1529,96 +1529,125 @@ const ProcessSection = memo(() => {
 
 // 9. Testimonials Section
 const TestimonialsSection = memo(() => {
-  const [activeMobileIdx, setActiveMobileIdx] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const testimonials = [
-    {
-      role: "Psicologia & Saúde",
-      feedback: "Ficou maravilhoso, só elogios 😍. Ficou lindo, funcional e o sistema do blog está ajudando demais. Só tenho a agradecer pela atenção e trabalho!"
-    },
-    {
-      role: "Advocacia & Jurídico",
-      feedback: "Desde o início, você demonstrou um profissionalismo admirável, sempre atento aos detalhes, aberto às minhas ideias e extremamente comprometido. O resultado ficou muito além do que eu imaginava. O site ficou moderno, leve, intuitivo e visualmente impecável."
-    },
-    {
-      role: "Comércio & Vendas",
-      feedback: "Davi, testei a página de vendas que você fez e o resultado está incrível! Meu retorno melhorou 3 vezes e a página está muito rápida. Muito obrigado!"
-    }
+    "Ficou maravilhoso, só elogios 😍. Ficou lindo, funcional e o sistema do blog está ajudando demais. Só tenho a agradecer pela atenção e trabalho!",
+    "Desde o início, você demonstrou um profissionalismo admirável, sempre atento aos detalhes, aberto às minhas ideias e extremamente comprometido. O resultado ficou muito além do que eu imaginava. O site ficou moderno, leve, intuitivo e visualmente impecável.",
+    "Davi, testei a página de vendas que você fez e o resultado está incrível! Meu retorno melhorou 3 vezes e a página está muito rápida. Muito obrigado!",
+    "Só tenho a agradecer ao Davi, que criou meu site. Que competência! O site ficou melhor do que eu imaginava e ele super captou a minha essência e as minhas necessidades. Estou extremamente extasiada com o recebimento da minha página."
   ];
+
+  const handleScroll = () => {
+    if (!carouselRef.current) return;
+    const container = carouselRef.current;
+    const scrollLeft = container.scrollLeft;
+    const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).offsetWidth + 24 : 350;
+    const newIdx = Math.round(scrollLeft / cardWidth);
+    if (newIdx >= 0 && newIdx < testimonials.length && newIdx !== activeIdx) {
+      setActiveIdx(newIdx);
+    }
+  };
+
+  const scrollToIndex = (idx: number) => {
+    if (!carouselRef.current) return;
+    const container = carouselRef.current;
+    const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).offsetWidth + 24 : 350;
+    container.scrollTo({
+      left: idx * cardWidth,
+      behavior: 'smooth'
+    });
+    setActiveIdx(idx);
+  };
+
+  const scrollByDirection = (direction: 'left' | 'right') => {
+    const nextIdx = direction === 'left' 
+      ? Math.max(0, activeIdx - 1) 
+      : Math.min(testimonials.length - 1, activeIdx + 1);
+    scrollToIndex(nextIdx);
+  };
 
   return (
     <section id="testimonials" className="bg-[#0C0C0C] text-[#D7E2EA] rounded-t-[40px] sm:rounded-t-[50px] md:rounded-t-[60px] px-5 sm:px-8 md:px-10 py-20 sm:py-24 md:py-32 relative z-50 -mt-10 sm:-mt-12 md:-mt-14 overflow-hidden">
       <div className="max-w-6xl mx-auto flex flex-col">
-        <FadeIn delay={0} y={40} className="w-full text-center mb-12 sm:mb-16">
-          <h2 className="hero-heading font-black uppercase text-[clamp(2.5rem,10vw,140px)] leading-none select-none">
-            Feedbacks
-          </h2>
-          <p className="text-[#D7E2EA]/60 text-sm sm:text-base mt-4 max-w-md mx-auto">
-            O que clientes e parceiros dizem sobre o trabalho entregue.
-          </p>
-        </FadeIn>
+        {/* Header with Navigation Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12 sm:mb-16">
+          <FadeIn delay={0} y={40} className="text-center sm:text-left">
+            <h2 className="hero-heading font-black uppercase text-[clamp(2.5rem,10vw,140px)] leading-none select-none">
+              Feedbacks
+            </h2>
+            <p className="text-[#D7E2EA]/60 text-sm sm:text-base mt-4 max-w-md">
+              O que clientes e parceiros dizem sobre o trabalho entregue.
+            </p>
+          </FadeIn>
 
-        {/* Desktop View: 3-column grid */}
-        <div className="hidden md:grid md:grid-cols-3 gap-6 w-full">
-          {testimonials.map((test, idx) => (
-            <FadeIn key={idx} delay={idx * 0.15} y={30} className="bg-[#121212] border border-[#D7E2EA]/10 rounded-[28px] p-7 lg:p-8 flex flex-col justify-between hover:border-blue-500/40 hover:bg-[#151515] transition-all duration-300 shadow-xl">
-              <div>
-                <svg className="w-8 h-8 text-blue-500/40 mb-4" fill="currentColor" viewBox="0 0 32 32">
-                  <path d="M10.041 21.096c-1.397-2.315-1.996-4.996-1.782-7.962.193-2.673 1.258-4.966 3.195-6.88 1.937-1.914 4.305-3.085 7.106-3.513l1.109 2.505c-1.571.554-2.88 1.341-3.928 2.361-1.047 1.02-1.748 2.222-2.102 3.606 1.761 0 3.238.561 4.432 1.684 1.194 1.123 1.791 2.551 1.791 4.284 0 1.713-.604 3.167-1.811 4.364-1.208 1.196-2.709 1.795-4.502 1.795-1.551 0-2.822-.748-3.811-2.244zm14.156 0c-1.397-2.315-1.996-4.996-1.782-7.962.193-2.673 1.258-4.966 3.195-6.88 1.937-1.914 4.305-3.085 7.106-3.513l1.109 2.505c-1.571.554-2.88 1.341-3.928 2.361-1.047 1.02-1.748 2.222-2.102 3.606 1.761 0 3.238.561 4.432 1.684 1.194 1.123 1.791 2.551 1.791 4.284 0 1.713-.604 3.167-1.811 4.364-1.208 1.196-2.709 1.795-4.502 1.795-1.551 0-2.822-.748-3.811-2.244z"/>
-                </svg>
-                <p className="font-light leading-relaxed text-[#D7E2EA]/85 text-sm lg:text-base italic">
-                  "{test.feedback}"
-                </p>
-              </div>
-              <div className="mt-6 pt-5 border-t border-[#D7E2EA]/10 flex items-center justify-between">
-                <span className="text-blue-400 text-xs uppercase tracking-widest font-semibold">{test.role}</span>
-                <span className="text-emerald-400/90 text-[10px] uppercase font-mono tracking-wider">Verificado</span>
-              </div>
-            </FadeIn>
-          ))}
+          {/* Carousel Arrows */}
+          <div className="hidden sm:flex items-center justify-center gap-3">
+            <button
+              onClick={() => scrollByDirection('left')}
+              disabled={activeIdx === 0}
+              aria-label="Depoimento anterior"
+              className={`w-12 h-12 rounded-full border border-white/10 flex items-center justify-center transition-all duration-300 ${
+                activeIdx === 0 
+                  ? 'opacity-30 cursor-not-allowed bg-transparent' 
+                  : 'hover:bg-blue-600 hover:border-blue-500 text-white bg-white/5 active:scale-95 shadow-lg cursor-pointer'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <button
+              onClick={() => scrollByDirection('right')}
+              disabled={activeIdx === testimonials.length - 1}
+              aria-label="Próximo depoimento"
+              className={`w-12 h-12 rounded-full border border-white/10 flex items-center justify-center transition-all duration-300 ${
+                activeIdx === testimonials.length - 1 
+                  ? 'opacity-30 cursor-not-allowed bg-transparent' 
+                  : 'hover:bg-blue-600 hover:border-blue-500 text-white bg-white/5 active:scale-95 shadow-lg cursor-pointer'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Mobile View: Touch Carousel */}
-        <div className="md:hidden flex flex-col items-center w-full">
-          <div 
-            className="w-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-4 pb-4 px-1"
-            onScroll={(e) => {
-              const target = e.currentTarget;
-              const cardWidth = target.offsetWidth * 0.85;
-              const idx = Math.round(target.scrollLeft / cardWidth);
-              if (idx >= 0 && idx < testimonials.length) {
-                setActiveMobileIdx(idx);
-              }
-            }}
+        {/* Unified Carousel Container (Desktop & Mobile) */}
+        <div className="w-full relative">
+          <div
+            ref={carouselRef}
+            onScroll={handleScroll}
+            className="w-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-6 pb-6 px-1 cursor-grab active:cursor-grabbing"
           >
-            {testimonials.map((test, idx) => (
+            {testimonials.map((feedback, idx) => (
               <div
                 key={idx}
-                className="snap-center shrink-0 w-[88vw] max-w-[340px] bg-[#121212] border border-[#D7E2EA]/10 rounded-[28px] p-6 sm:p-7 flex flex-col justify-between shadow-2xl"
+                className="snap-center shrink-0 w-[88vw] sm:w-[460px] lg:w-[520px] bg-[#121212] border border-[#D7E2EA]/10 rounded-[28px] p-7 sm:p-9 flex flex-col justify-between hover:border-blue-500/40 hover:bg-[#151515] transition-all duration-300 shadow-2xl group"
               >
                 <div>
-                  <svg className="w-7 h-7 text-blue-500/40 mb-3" fill="currentColor" viewBox="0 0 32 32">
-                    <path d="M10.041 21.096c-1.397-2.315-1.996-4.996-1.782-7.962.193-2.673 1.258-4.966 3.195-6.88 1.937-1.914 4.305-3.085 7.106-3.513l1.109 2.505c-1.571.554-2.88 1.341-3.928 2.361-1.047 1.02-1.748 2.222-2.102 3.606 1.761 0 3.238.561 4.432 1.684 1.194 1.123 1.791 2.551 1.791 4.284 0 1.713-.604 3.167-1.811 4.364-1.208 1.196-2.709 1.795-4.502 1.795-1.551 0-2.822-.748-3.811-2.244zm14.156 0c-1.397-2.315-1.996-4.996-1.782-7.962.193-2.673 1.258-4.966 3.195-6.88 1.937-1.914 4.305-3.085 7.106-3.513l1.109 2.505c-1.571.554-2.88 1.341-3.928 2.361-1.047 1.02-1.748 2.222-2.102 3.606 1.761 0 3.238.561 4.432 1.684 1.194 1.123 1.791 2.551 1.791 4.284 0 1.713-.604 3.167-1.811 4.364-1.208 1.196-2.709 1.795-4.502 1.795-1.551 0-2.822-.748-3.811-2.244z"/>
+                  <svg className="w-8 h-8 text-blue-500/40 group-hover:text-blue-500/80 transition-colors mb-5" fill="currentColor" viewBox="0 0 32 32">
+                    <path d="M10.041 21.096c-1.397-2.315-1.996-4.996-1.782-7.962.193-2.673 1.258-4.966 3.195-6.88 1.937-1.914 4.305-3.085 7.106-3.513l1.109 2.505c-1.571.554-2.88 1.341-3.928 2.361-1.047 1.02-1.748 2.222-2.102 3.606 1.761 0 3.238.561 4.432 1.684 1.194 1.123 1.791 2.551 1.791 4.284 0 1.713-.604 3.167-1.811 4.364-1.208 1.196-2.709 1.795-4.502 1.795-1.551 0-2.822-.748-3.811-2.244zm14.156 0c-1.397-2.315-1.996-4.996-1.782-7.962.193-2.673 1.258-4.966 3.195-6.88 1.937-1.914 4.305-3.085 7.106-3.513l1.109 2.505c-1.571.554-2.88 1.341-3.928 2.361-1.047 1.02-1.748 2.222-2.102 3.606 1.761 0 3.238.561 4.432 1.684 1.194 1.123 1.791 2.551 1.791 4.284 0 1.713-.604 3.167-1.811 4.364-1.208 1.196-2.709 1.795-4.502 1.795-1.551 0-2.822-.748-3.811-2.244z" />
                   </svg>
-                  <p className="font-light leading-relaxed text-[#D7E2EA]/85 text-sm italic">
-                    "{test.feedback}"
+                  <p className="font-light leading-relaxed text-[#D7E2EA]/90 text-sm sm:text-base italic">
+                    "{feedback}"
                   </p>
-                </div>
-                <div className="mt-6 pt-4 border-t border-[#D7E2EA]/10 flex items-center justify-between">
-                  <span className="text-blue-400 text-xs uppercase tracking-widest font-semibold">{test.role}</span>
-                  <span className="text-emerald-400/90 text-[10px] uppercase font-mono tracking-wider">Verificado</span>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Dots Indicator */}
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center justify-center gap-2 mt-6">
             {testimonials.map((_, i) => (
-              <div
+              <button
                 key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeMobileIdx === i ? 'w-6 bg-blue-500 shadow-[0_0_8px_#3B82F6]' : 'w-1.5 bg-white/20'
+                onClick={() => scrollToIndex(i)}
+                aria-label={`Ir para o feedback ${i + 1}`}
+                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                  activeIdx === i ? 'w-8 bg-blue-500 shadow-[0_0_10px_#3B82F6]' : 'w-2 bg-white/20 hover:bg-white/40'
                 }`}
               />
             ))}
